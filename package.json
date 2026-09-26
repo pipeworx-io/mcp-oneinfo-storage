@@ -1,6 +1,6 @@
 {
   "name": "@pipeworx/mcp-oneinfo-storage",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Italian regulated disclosures direct from 1INFO — keyless, same-day-fresh.",
   "type": "module",
   "main": "src/index.ts",
@@ -26,7 +26,7 @@
     "@cloudflare/workers-types": "^4.20260405.1"
   },
   "pipeworx": {
-    "sourceHash": "v1-a4a5496e03b016fb4d4679a19a9a6cb7ee8be6634d38b656e4eb40426d65294c",
-    "sourceCommit": "adb69d997f82a62e8e22b594488c7d04a227db35"
+    "sourceHash": "v1-e54b94de2178fb1cefd1b37b89af405f0b80ba42f3e452b095f8e4446b06d9b1",
+    "sourceCommit": "97740c6ee04c8acbfe7dddcacfde9e88ff2b9ca0"
   }
 }
