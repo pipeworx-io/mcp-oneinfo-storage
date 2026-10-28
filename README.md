@@ -5,7 +5,7 @@ index (title, issuer, category, timestamp, document link), updated same-day,
 covering the ~314 issuers that use 1INFO instead of eMarket Storage as their
 Officially Appointed Mechanism (OAM) for EU Transparency Directive filings.
 
-Part of [Pipeworx](https://pipeworx.io) — an MCP gateway connecting AI agents to 1807+ live data sources. This is an independent, unofficial integration — not affiliated with, endorsed by, or published by the upstream provider.
+Part of [Pipeworx](https://pipeworx.io) — an MCP gateway connecting AI agents to 1856+ live data sources. This is an independent, unofficial integration — not affiliated with, endorsed by, or published by the upstream provider.
 
 ## Tools
 
@@ -29,7 +29,18 @@ isn't found here, try `emarket-storage`'s `emarket_search_disclosures`
 instead** (and vice versa — `emarket-storage`'s not-found note points back
 here).
 
-## ⚠️ Five things a caller must know
+## One call per day, not one call per issuer
+
+`company`/`ndg` are optional on `oneinfo_search_disclosures`. Omit them and
+pass only `date_from`/`date_to` (and optionally `category`) to get every
+1INFO issuer's disclosures for that window in ONE call — verified live
+2026-10-19. A design partner doing a daily check across ~155 issuers across
+all three ESEF-regulator packs was instead calling once per issuer and
+exhausting a 50-credit-per-call allowance in ~35 calls (fleet #3300); the
+date-window call (with no `ndg` to filter on, every row the scan finds is a
+match) is the cheap way to do that check.
+
+## ⚠️ Six things a caller must know
 
 1. **1INFO-covered issuers only — not the full Italian market.** A company
    search that matches nothing returns an explanatory `note`, not a bare
@@ -71,6 +82,22 @@ here).
    `matched_in_scanned_range` is an exact count for the range
    (`range_fully_scanned: true`) or only a lower bound — never a fabricated
    total.
+6. **`fiscal_year` is now derived from the DOCUMENT, not the deposit date —
+   `fiscal_year_source` says which rule produced it.** `dataEsercizio` (the
+   field the old `fiscal_year` was computed from) is a genuine
+   fiscal-period-end date ONLY on XBRL-tagged rows; on every other row (most
+   of them) 1INFO sets it EQUAL to the deposit timestamp. Verified live
+   2026-10-19 on Eurotech/ndg=789: the FY2024 ESEF ZIP correctly has
+   `dataEsercizio` = 2024-12-31, while its sibling FY2024 PDF (deposited
+   2025-04-01) had `dataEsercizio` = `dataStoccaggio` = 2025-04-01 — the old
+   code reported `fiscal_year: "2025"` for a document whose own title says
+   "...annuale 2024...". This pack now reads the year stated in the title for
+   non-XBRL rows. `fiscal_year_source` is one of `xbrl_metadata` (trusted
+   `dataEsercizio`), `title` (extracted from the document's own title text),
+   or `deposit_date_fallback` (no usable year in the title — still the old
+   deposit-date value, never a fabricated one). The `document_url`'s own
+   `year` query parameter is UNCHANGED by this fix — see the Gotchas section,
+   it still needs the raw `dataEsercizio` value or the download 302s.
 
 ## Auth
 
@@ -102,12 +129,19 @@ Keyless. No account, no API key.
   confirmed live 2026-09-24 on three different issuers/categories (UNIDATA
   REGEM, Banca Sistema 3.1, SOMEC 1.2), each 302 without the suffix and
   HTTP 200 with it.
-- **`year` is the FISCAL year from `dataEsercizio`, not the storage year**
-  — and it can differ between two filings stored on the very same day for
-  the very same report: SOMEC's FY2025 annual report was stored as two
-  sibling rows (the ESEF-format ZIP and a plain-PDF twin) 2 minutes apart,
-  with `year=2025` for one and `year=2026` for the other — both confirmed
-  live to need exactly their own computed year, not the other's.
+- **The download URL's `year` and the reported `fiscal_year` are now
+  DIFFERENT things, on purpose.** `year` in `document_url` must be
+  `romeYearLocal(dataEsercizio)` EXACTLY — it is a resolver key `PdfShow.aspx`
+  itself checks, confirmed live 2026-10-19 on Eurotech's FY2024 PDF
+  (protocolCode `152498_oneinfo`): `year=2025` (its own `dataEsercizio`)
+  resolves a 6.2MB PDF, `year=2024` or any other value 302s to an error page.
+  `fiscal_year` (the metadata field) is the corrected, document-derived value
+  — see "Six things a caller must know" above. Two sibling filings stored the
+  same day for the same report can still need different `year` values in
+  their URLs (SOMEC's FY2025 ESEF ZIP and plain-PDF twin, stored 2 minutes
+  apart, needed `year=2025` and `year=2026` respectively) — that part of the
+  original finding is unchanged; only what gets REPORTED as `fiscal_year`
+  changed.
 - **Company-name resolution** uses `rankMatches` (exact > prefix > whole-word
   > substring) against 1INFO's own issuer picklist, embedded at
   `/API/companies/documenti`. An ambiguous match (multiple issuers tied at
@@ -123,6 +157,14 @@ Keyless. No account, no API key.
   re-scans that day's listing (up to 3 requests / 3,000 rows, far more than
   any single day's market-wide volume — 33,444 rows measured over roughly 5
   years) and matches on `protocolCode`.
+- **Each Documenti page fetch (search or lookup) gets a 15s timeout**, not
+  the shared 25s default. A single page genuinely takes longer than
+  eMarket's HTML listing — measured live 2026-10-19, ~3.1s typical — and the
+  search/lookup loops are sequential, so the old 25s default bounded a
+  6-request search to a 150s worst case. A design partner reported ~230s
+  stalls in production (fleet #3300) that line up with that order of
+  magnitude; 15s is ~5x the measured normal latency while capping the new
+  worst case at 90s (search) / 45s (by-id lookup).
 
 ## Quick Start
 
@@ -168,7 +210,7 @@ directly, instead of just this one's:
 }
 ```
 
-Both URLs reach the same gateway and the same 1807+ data sources. The
+Both URLs reach the same gateway and the same 1856+ data sources. The
 only difference is which pack's tools are listed **directly**; `ask_pipeworx`
 reaches all of them from either one.
 
