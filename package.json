@@ -1,12 +1,20 @@
 {
   "name": "@pipeworx/mcp-oneinfo-storage",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Italian regulated disclosures direct from 1INFO — keyless, same-day-fresh.",
   "type": "module",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./tools.json": "./tools.json",
+    "./package.json": "./package.json"
+  },
   "bin": {
     "mcp-oneinfo-storage": "bin/cli.js"
+  },
+  "files": ["bin/", "lib/", "tools.json", "server.json"],
+  "engines": {
+    "node": ">=18"
   },
   "keywords": ["mcp", "mcp-server", "model-context-protocol", "pipeworx", "oneinfo-storage"],
   "license": "MIT",
@@ -14,19 +22,12 @@
     "type": "git",
     "url": "git+https://github.com/pipeworx-io/mcp-oneinfo-storage.git"
   },
-  "scripts": {
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
-    "tsx": "^4.19.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.9.3",
-    "@cloudflare/workers-types": "^4.20260405.1"
-  },
+  "mcpName": "io.github.pipeworx-io/oneinfo-storage",
   "pipeworx": {
-    "sourceHash": "v1-8c94a04051f3c13335da5b2c0786a26fb18ffde87464fbf4cdc4b47ffcb676a7",
-    "sourceCommit": "f54ad77e789f27fe393978f9c080b5b18c87bb4f"
+    "mode": "gateway",
+    "slug": "oneinfo-storage",
+    "gatewaySlug": "oneinfo-storage",
+    "sourceHash": "v1-31d2f5d818bc7e69e381f03c89d641b6df7023b1d8a738a3a2a8c8ac5cc91637",
+    "sourceCommit": "b2c4383545bb35171d0ada2beb1c9c7168ea175e"
   }
 }
